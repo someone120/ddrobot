@@ -23,7 +23,7 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Build with Gradle
-      run: ./gradlew shadowJar
+      run: ./gradlew build
     - uses: xresloader/upload-to-github-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # （必须）token，每个仓库的workflow会自动带一个 ${{ secrets.GITHUB_TOKEN }} ，直接用这个即可
