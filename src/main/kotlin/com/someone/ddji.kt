@@ -1,27 +1,21 @@
 package com.someone
 
-import com.beust.klaxon.Klaxon
 import net.mamoe.mirai.console.plugins.PluginBase
 import net.mamoe.mirai.event.events.MessageRecallEvent
 import net.mamoe.mirai.event.subscribeAlways
 import net.mamoe.mirai.event.subscribeGroupMessages
-import net.mamoe.mirai.event.subscribeMessages
 import net.mamoe.mirai.utils.info
-import com.google.gson.annotations.SerializedName
-
 
 var d = mapOf<Long, String>()
 val bd = BilibiliData()
 
 object ddji : PluginBase() {
-    override fun onLoad() {
-        super.onLoad()
-    }
 
     override fun onDisable() {
         super.onDisable()
         logger.info(bd.export())
     }
+
     override fun onEnable() {
         super.onEnable()
 
@@ -44,13 +38,13 @@ object ddji : PluginBase() {
                         ".bv bv号--用bv号来查询视频desu"
             }
             startsWith(".band ", removePrefix = true) {
-                if (d.size != 0) {
+                if (d.isNotEmpty()) {
                     d = mapOf()
                 }
                 d = bd.band(it)
                 if (d.size > 1) {
                     val message = StringBuilder("好像搜到了多个人哦，找到要d的人之后发送‘.b 前面的序号’吧：")
-                    d.forEach { t, u -> message.append("\n${t}---${u}") }
+                    d.forEach { (t, u) -> message.append("\n${t}---${u}") }
                     reply(message.toString())
                 } else {
                     bd.uid(d.keys.toList()[0], d.values.toList()[0])
@@ -61,30 +55,34 @@ object ddji : PluginBase() {
             ".导出" reply {
                 bd.export()
             }
-            startsWith(".导入 ",removePrefix = true){
+            startsWith(".导入 ", removePrefix = true) {
                 bd.import(it)
                 reply("成功！")
             }
-            startsWith(".uid ",removePrefix = true) {
+            startsWith(".uid ", removePrefix = true) {
                 val uid = it
-                val name=bd.getName(uid.toLong())
-                bd.uid(uid.toLong(),name)
+                val name = bd.getName(uid.toLong())
+                bd.uid(uid.toLong(), name)
                 reply("添加成功！名字为$name")
             }
-            ".run" reply{
+            ".run" reply {
                 bd.run(bot, group)
                 "在本群启动咯"
             }
-            Regex(".b .*") matchingReply {
-                val ms = it.value.drop(3)
-                if (d.size == 0) {
-                    "没有搜索吧"
-                } else if (d.any { it.key == ms.toLong() }) {
-                    bd.uid(ms.toLong(), d.get(ms.toLong())!!)
-                    "添加成功！名字为${d.get(ms.toLong())}"
-                } else {
+            Regex(".b .*") matchingReply { result ->
+                val ms = result.value.drop(3)
+                when {
+                    d.isEmpty() -> {
+                        "没有搜索吧"
+                    }
+                    d.any { it.key == ms.toLong() } -> {
+                        bd.uid(ms.toLong(), d[ms.toLong()] ?: error(""))
+                        "添加成功！名字为${d[ms.toLong()]}"
+                    }
+                    else -> {
 
-                    "没有这个序号吧"
+                        "没有这个序号吧"
+                    }
                 }
             }
         }

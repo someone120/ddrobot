@@ -2,7 +2,6 @@ package com.someone
 
 import com.beust.klaxon.Klaxon
 import com.google.gson.annotations.SerializedName
-import com.someone.BilibiliData.live
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -16,14 +15,14 @@ import java.util.logging.Logger
 
 
 class BilibiliData {
-    var ids = mutableMapOf<Long, String>()
-    var dynamics = mutableMapOf<Long, Long>()
-    var status = mutableMapOf<Long, Int>()
-    var bot: Bot? = null
-    val groups = mutableSetOf<Group>()
+    private var _ids = mutableMapOf<Long, String>()
+    //var Dynamics = mutableMapOf<Long, Long>()
+    private var _status = mutableMapOf<Long, Int>()
+    private var _bot: Bot? = null
+    private val _groups = mutableSetOf<Group>()
     fun uid(id: Long, name: String) {
-        ids.put(id, name)
-        status.put(id, 0)
+        _ids[id] = name
+        _status[id] = 0
     }
 
     fun export(): String {
@@ -37,20 +36,20 @@ class BilibiliData {
         data class Status(
             @SerializedName("id")
             val id: Long = 0,
-            @SerializedName("status")
+            @SerializedName("_Status")
             val status: Int = 0
         )
 
-        data class data(
-            @SerializedName("ids")
+        data class Data(
+            @SerializedName("_Ids")
             var ids: List<Id> = mutableListOf(),
-            @SerializedName("status")
+            @SerializedName("_Status")
             var status: List<Status> = mutableListOf()
         )
 
-        val d = data()
-        this.ids.forEach { t, u -> d.ids += Id(id = t, name = u) }
-        this.status.forEach { t, u -> d.status += Status(id = t, status = u) }
+        val d = Data()
+        this._ids.forEach { (t, u) -> d.ids += Id(id = t, name = u) }
+        this._status.forEach { (t, u) -> d.status += Status(id = t, status = u) }
         return Klaxon().toJsonString(d)
     }
 
@@ -65,20 +64,20 @@ class BilibiliData {
         data class Status(
             @SerializedName("id")
             val id: Long = 0,
-            @SerializedName("status")
+            @SerializedName("_Status")
             val status: Int = 0
         )
 
-        data class data(
-            @SerializedName("ids")
+        data class Data(
+            @SerializedName("_Ids")
             val ids: List<Id> = listOf(),
-            @SerializedName("status")
+            @SerializedName("_Status")
             val status: List<Status> = listOf()
         )
 
-        val d = Klaxon().parse<data>(string)
-        d!!.ids.forEach { this.ids.put(it.id, it.name) }
-        d.status.forEach { this.status.put(it.id, it.status) }
+        val d = Klaxon().parse<Data>(string)
+        d!!.ids.forEach { this._ids[it.id] = it.name }
+        d.status.forEach { this._status[it.id] = it.status }
     }
 
     fun get(string: String): String? {
@@ -146,7 +145,7 @@ class BilibiliData {
         class Theme
 
         data class Vip(
-            @SerializedName("status")
+            @SerializedName("_Status")
             val status: Int = 0,
             @SerializedName("theme_type")
             val themeType: Int = 0,
@@ -199,7 +198,7 @@ class BilibiliData {
             val vip: Vip = Vip()
         )
 
-        data class info(
+        data class Info(
             @SerializedName("code")
             val code: Int = 0,
             @SerializedName("data")
@@ -212,7 +211,7 @@ class BilibiliData {
 
 
         val data = get("https://api.bilibili.com/x/space/acc/info?mid=${mid}&jsonp=jsonp")
-        val json = data?.let { Klaxon().parse<info>(it) }
+        val json = data?.let { Klaxon().parse<Info>(it) }
         return json!!.data.name
     }
 
@@ -227,7 +226,7 @@ class BilibiliData {
             val asResponseFormat: String = "",
             @SerializedName("deserialize_response")
             val deserializeResponse: String = "",
-            @SerializedName("get upuser live status")
+            @SerializedName("get upuser live _Status")
             val getUpuserLiveStatus: String = "",
             @SerializedName("illegal_handler")
             val illegalHandler: String = "",
@@ -347,7 +346,7 @@ class BilibiliData {
             val suggestKeyword: String = ""
         )
 
-        data class search(
+        data class Search(
             @SerializedName("code")
             val code: Int = 0,
             @SerializedName("data")
@@ -359,37 +358,37 @@ class BilibiliData {
         )
 
 
-        var result = mutableMapOf<Long, String>()
+        val result = mutableMapOf<Long, String>()
         val data = get(
             "https://api.bilibili.com/x/web-interface/search/type?context=&search_type=bili_user&page=1&order=&category_id=&user_type=&order_sort=&changing=mid&__refresh__=true&_extra=&highlight=1&single_column=0&keyword=" + URLEncoder.encode(
                 string,
                 "UTF-8"
             )
         )
-        if (data == null) {
-            return mutableMapOf<Long, String>()
+        return if (data == null) {
+            mutableMapOf()
         } else {
             val json = Klaxon()
-                .parse<search>(data)
+                    .parse<Search>(data)
             val r = json!!.data.result
             r.forEach {
-                result.put(it.mid.toLong(), it.uname)
+                result[it.mid.toLong()] = it.uname
             }
-            return result
+            result
         }
     }
 
     fun run(bot: Bot, group: Group) {
-        if (this.bot == null) {
-            this.bot = bot
+        if (this._bot == null) {
+            this._bot = bot
         }
-        groups.add(group)
+        _groups.add(group)
         GlobalScope.launch {
             while (true) {
                 delay(10 * 1000)
-                ids.forEach {
+                _ids.forEach {
                     delay(1000)
-                    groups.forEach { group ->
+                    _groups.forEach { group ->
                         val live = getLive(it.key)
                         if (live.stat == 1) group.sendMessage(group.uploadImage(URL(live.cover)).plus(live.message))
                     }
@@ -398,8 +397,8 @@ class BilibiliData {
         }
     }
 
-    fun getLive(uid: Long): live {
-        var result = StringBuilder()
+    private fun getLive(uid: Long): Live {
+        val result = StringBuilder()
 
         data class Data(
             val broadcast_type: Int,
@@ -414,7 +413,7 @@ class BilibiliData {
             val url: String
         )
 
-        data class live(
+        data class Live(
             val code: Int,
             val `data`: Data,
             val message: String,
@@ -422,17 +421,17 @@ class BilibiliData {
         )
 
         var d = 0
-        var data = get("https://api.live.bilibili.com/room/v1/Room/getRoomInfoOld?mid=${uid}")
-        var json: live? = Klaxon().parse<live>(data!!)
-        if (json!!.data.liveStatus != status[uid]) {
-            status.put(uid, json.data.liveStatus)
+        val data = get("https://api.live.bilibili.com/room/v1/Room/getRoomInfoOld?mid=${uid}")
+        val json: Live? = Klaxon().parse<Live>(data!!)
+        if (json!!.data.liveStatus != _status[uid]) {
+            _status[uid] = json.data.liveStatus
             if (json.data.liveStatus == 1) {
-                result.append("${ids[uid]}直播啦！直播标题是${json.data.title},快到${json.data.url} 看8")
+                result.append("${_ids[uid]}直播啦！直播标题是${json.data.title},快到${json.data.url} 看8")
                 d = 1
             }
         }
         Logger.getLogger("ddji").info("获取成功！$data")
-        return live(cover = json.data.cover, message = result.toString(), stat = d)
+        return Live(cover = json.data.cover, message = result.toString(), stat = d)
     }
 
     fun getAv(Aid: Int) {
@@ -443,7 +442,7 @@ class BilibiliData {
         TODO()
     }
 
-    data class live(
+    data class Live(
         val stat: Int,
         val cover: String,
         val message: String

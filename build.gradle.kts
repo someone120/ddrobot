@@ -9,6 +9,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "5.2.0"
 }
 
+
 group = "someone"
 version = "0.1.0"
 
@@ -27,6 +28,7 @@ dependencies {
     compileOnly("net.mamoe:mirai-core:$miraiCoreVersion")
     compileOnly("net.mamoe:mirai-console:$miraiConsoleVersion")
     implementation("com.beust:klaxon:5.0.1")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.3.71")
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation("net.mamoe:mirai-core:$miraiCoreVersion")
     testImplementation("net.mamoe:mirai-core-qqandroid:$miraiCoreVersion")
@@ -45,7 +47,6 @@ tasks {
     compileTestKotlin {
         kotlinOptions.jvmTarget = "1.8"
     }
-
     val runMiraiConsole by creating(JavaExec::class.java) {
         group = "mirai"
         dependsOn(shadowJar)
