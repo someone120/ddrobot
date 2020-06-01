@@ -386,8 +386,8 @@ class BilibiliData {
         }
         _groups.add(group)
         GlobalScope.launch {
-            try {
-                while (true) {
+            while (true) {
+                try {
                     delay(10 * 1000)
                     _ids.forEach {
                         delay(1000)
@@ -396,9 +396,9 @@ class BilibiliData {
                             if (live.stat == 1) group.sendMessage(group.uploadImage(URL(live.cover)).plus(live.message))
                         }
                     }
+                } catch (e: Exception) {
+                    bot.getFriend(525965357).sendMessage(e.toString())
                 }
-            }catch (e:Exception){
-                bot.getFriend(525965357).sendMessage(e.toString())
             }
         }
     }
