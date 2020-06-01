@@ -386,15 +386,19 @@ class BilibiliData {
         }
         _groups.add(group)
         GlobalScope.launch {
-            while (true) {
-                delay(10 * 1000)
-                _ids.forEach {
-                    delay(1000)
-                    _groups.forEach { group ->
-                        val live = getLive(it.key)
-                        if (live.stat == 1) group.sendMessage(group.uploadImage(URL(live.cover)).plus(live.message))
+            try {
+                while (true) {
+                    delay(10 * 1000)
+                    _ids.forEach {
+                        delay(1000)
+                        _groups.forEach { group ->
+                            val live = getLive(it.key)
+                            if (live.stat == 1) group.sendMessage(group.uploadImage(URL(live.cover)).plus(live.message))
+                        }
                     }
                 }
+            }catch (e:Exception){
+                bot.getFriend(525965357).sendMessage(e.toString())
             }
         }
     }
@@ -538,11 +542,11 @@ class BilibiliData {
         )
 
         val json = Klaxon().parse<Video>(data!!)
-        return "标题：${json!!.data.title}AV号：${json.data.aid}\nBV号：${json.data.bvid}\n播放数：${json.data.stat.view}\n"+
+        return "标题：${json!!.data.title}AV号：${json.data.aid}\nBV号：${json.data.bvid}\n播放数：${json.data.stat.view}\n" +
                 "硬币数：${json.data.stat.coin}\n收藏数：${json.data.stat.favorite}"
     }
 
-    fun getBv(Bvid: String):String {
+    fun getBv(Bvid: String): String {
         val data = get("https://api.bilibili.com/x/web-interface/view?aid=$Bvid")
 
         data class Dimension(
@@ -644,7 +648,7 @@ class BilibiliData {
         )
 
         val json = Klaxon().parse<Video>(data!!)
-        return "标题：${json!!.data.title}AV号：${json.data.aid}\nBV号：${json.data.bvid}\n播放数：${json.data.stat.view}\n"+
+        return "标题：${json!!.data.title}AV号：${json.data.aid}\nBV号：${json.data.bvid}\n播放数：${json.data.stat.view}\n" +
                 "硬币数：${json.data.stat.coin}\n收藏数：${json.data.stat.favorite}"
 
     }
