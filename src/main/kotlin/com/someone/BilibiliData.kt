@@ -547,7 +547,7 @@ class BilibiliData {
     }
 
     fun getBv(Bvid: String): String {
-        val data = get("https://api.bilibili.com/x/web-interface/view?aid=$Bvid")
+        val data = get("https://api.bilibili.com/x/web-interface/view?bvid=$Bvid")
 
         data class Dimension(
             val height: Int = 0, // 0
