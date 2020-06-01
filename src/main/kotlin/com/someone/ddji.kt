@@ -37,6 +37,12 @@ object ddji : PluginBase() {
                         ".av av号--用av号来查询视频desu\n" +
                         ".bv bv号--用bv号来查询视频desu"
             }
+            startsWith(".bv ",removePrefix = true){
+                reply(bd.getBv(it))
+            }
+            startsWith(".av ",removePrefix = true){
+                reply(bd.getAv(it.toInt()))
+            }
             startsWith(".band ", removePrefix = true) {
                 if (d.isNotEmpty()) {
                     d = mapOf()

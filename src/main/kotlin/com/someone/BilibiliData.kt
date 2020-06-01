@@ -2,6 +2,7 @@ package com.someone
 
 import com.beust.klaxon.Klaxon
 import com.google.gson.annotations.SerializedName
+import com.someone.BilibiliData.Live
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -16,6 +17,7 @@ import java.util.logging.Logger
 
 class BilibiliData {
     private var _ids = mutableMapOf<Long, String>()
+
     //var Dynamics = mutableMapOf<Long, Long>()
     private var _status = mutableMapOf<Long, Int>()
     private var _bot: Bot? = null
@@ -369,7 +371,7 @@ class BilibiliData {
             mutableMapOf()
         } else {
             val json = Klaxon()
-                    .parse<Search>(data)
+                .parse<Search>(data)
             val r = json!!.data.result
             r.forEach {
                 result[it.mid.toLong()] = it.uname
@@ -434,12 +436,217 @@ class BilibiliData {
         return Live(cover = json.data.cover, message = result.toString(), stat = d)
     }
 
-    fun getAv(Aid: Int) {
-        TODO()
+    fun getAv(Aid: Int): String {
+        val data = get("https://api.bilibili.com/x/web-interface/view?aid=$Aid")
+
+        data class Dimension(
+            val height: Int = 0, // 0
+            val rotate: Int = 0, // 0
+            val width: Int = 0 // 0
+        )
+
+        data class Owner(
+            val face: String = "", // http://i2.hdslb.com/bfs/face/40c46ee74dd6ea33d46c38cd6083e6a1286aa482.gif
+            val mid: Int = 0, // 122541
+            val name: String = "" // 冰封.虾子
+        )
+
+        data class Rights(
+            val autoplay: Int = 0, // 1
+            val bp: Int = 0, // 0
+            val download: Int = 0, // 1
+            val elec: Int = 0, // 0
+            val hd5: Int = 0, // 0
+            val is_cooperation: Int = 0, // 0
+            val movie: Int = 0, // 0
+            val no_background: Int = 0, // 0
+            val no_reprint: Int = 0, // 0
+            val pay: Int = 0, // 0
+            val ugc_pay: Int = 0, // 0
+            val ugc_pay_preview: Int = 0 // 0
+        )
+
+        data class Stat(
+            val aid: Int = 0, // 170001
+            val coin: Int = 0, // 188834
+            val danmaku: Int = 0, // 832488
+            val dislike: Int = 0, // 0
+            val evaluation: String = "",
+            val favorite: Int = 0, // 694730
+            val his_rank: Int = 0, // 13
+            val like: Int = 0, // 457333
+            val now_rank: Int = 0, // 0
+            val reply: Int = 0, // 132708
+            val share: Int = 0, // 509038
+            val view: Int = 0 // 27685357
+        )
+
+        data class Subtitle(
+            val allow_submit: Boolean = false, // false
+            val list: List<Any> = listOf()
+        )
+
+        data class DimensionX(
+            val height: Int = 0, // 0
+            val rotate: Int = 0, // 0
+            val width: Int = 0 // 0
+        )
+
+
+        data class Page(
+            val cid: Int = 0, // 279786
+            val dimension: DimensionX = DimensionX(),
+            val duration: Int = 0, // 199
+            val from: String = "", // vupload
+            val page: Int = 0, // 1
+            val part: String = "", // Хоп
+            val vid: String = "",
+            val weblink: String = ""
+        )
+
+        data class Data(
+            val aid: Int = 0, // 170001
+            val attribute: Int = 0, // 2130003
+            val bvid: String = "", // BV17x411w7KC
+            val cid: Int = 0, // 279786
+            val copyright: Int = 0, // 2
+            val ctime: Int = 0, // 1497380562
+            val desc: String = "", // sina 保加利亚超级天王 Azis1999年出道。他的音乐融合保加利亚名族曲风chalga和pop、rap等元素，不过他惊艳的易装秀与浮夸的角色诠释才是他最为出名的地方 Azis与众多保加利亚天王天后级歌手都有过合作.06年，他作为Mariana Popova的伴唱，在欧洲半决赛上演唱了他们的参赛曲Let Me Cry 06年他被Velikite Balgari评为保加利亚有史以来最伟大的名人之一
+            val dimension: Dimension = Dimension(),
+            val duration: Int = 0, // 2412
+            val `dynamic`: String = "",
+            val no_cache: Boolean = false, // false
+            val owner: Owner = Owner(),
+            val pages: List<Page> = listOf(),
+            val pic: String = "", // http://i2.hdslb.com/bfs/archive/1ada8c32a9d168e4b2ee3e010f24789ba3353785.jpg
+            val pubdate: Int = 0, // 1320850533
+            val rights: Rights = Rights(),
+            val stat: Stat = Stat(),
+            val state: Int = 0, // 0
+            val subtitle: Subtitle = Subtitle(),
+            val tid: Int = 0, // 193
+            val title: String = "", // 【MV】保加利亚妖王AZIS视频合辑
+            val tname: String = "", // MV
+            val videos: Int = 0 // 10
+        )
+
+        data class Video(
+            val code: Int = 0, // 0
+            val `data`: Data = Data(),
+            val message: String = "", // 0
+            val ttl: Int = 0 // 1
+        )
+
+        val json = Klaxon().parse<Video>(data!!)
+        return "标题：${json!!.data.title}AV号：${json.data.aid}\nBV号：${json.data.bvid}\n播放数：${json.data.stat.view}\n"+
+                "硬币数：${json.data.stat.coin}\n收藏数：${json.data.stat.favorite}"
     }
 
-    fun getBv(Bvid: String) {
-        TODO()
+    fun getBv(Bvid: String):String {
+        val data = get("https://api.bilibili.com/x/web-interface/view?aid=$Bvid")
+
+        data class Dimension(
+            val height: Int = 0, // 0
+            val rotate: Int = 0, // 0
+            val width: Int = 0 // 0
+        )
+
+        data class Owner(
+            val face: String = "", // http://i2.hdslb.com/bfs/face/40c46ee74dd6ea33d46c38cd6083e6a1286aa482.gif
+            val mid: Int = 0, // 122541
+            val name: String = "" // 冰封.虾子
+        )
+
+        data class Rights(
+            val autoplay: Int = 0, // 1
+            val bp: Int = 0, // 0
+            val download: Int = 0, // 1
+            val elec: Int = 0, // 0
+            val hd5: Int = 0, // 0
+            val is_cooperation: Int = 0, // 0
+            val movie: Int = 0, // 0
+            val no_background: Int = 0, // 0
+            val no_reprint: Int = 0, // 0
+            val pay: Int = 0, // 0
+            val ugc_pay: Int = 0, // 0
+            val ugc_pay_preview: Int = 0 // 0
+        )
+
+        data class Stat(
+            val aid: Int = 0, // 170001
+            val coin: Int = 0, // 188834
+            val danmaku: Int = 0, // 832488
+            val dislike: Int = 0, // 0
+            val evaluation: String = "",
+            val favorite: Int = 0, // 694730
+            val his_rank: Int = 0, // 13
+            val like: Int = 0, // 457333
+            val now_rank: Int = 0, // 0
+            val reply: Int = 0, // 132708
+            val share: Int = 0, // 509038
+            val view: Int = 0 // 27685357
+        )
+
+        data class Subtitle(
+            val allow_submit: Boolean = false, // false
+            val list: List<Any> = listOf()
+        )
+
+        data class DimensionX(
+            val height: Int = 0, // 0
+            val rotate: Int = 0, // 0
+            val width: Int = 0 // 0
+        )
+
+
+        data class Page(
+            val cid: Int = 0, // 279786
+            val dimension: DimensionX = DimensionX(),
+            val duration: Int = 0, // 199
+            val from: String = "", // vupload
+            val page: Int = 0, // 1
+            val part: String = "", // Хоп
+            val vid: String = "",
+            val weblink: String = ""
+        )
+
+        data class Data(
+            val aid: Int = 0, // 170001
+            val attribute: Int = 0, // 2130003
+            val bvid: String = "", // BV17x411w7KC
+            val cid: Int = 0, // 279786
+            val copyright: Int = 0, // 2
+            val ctime: Int = 0, // 1497380562
+            val desc: String = "", // sina 保加利亚超级天王 Azis1999年出道。他的音乐融合保加利亚名族曲风chalga和pop、rap等元素，不过他惊艳的易装秀与浮夸的角色诠释才是他最为出名的地方 Azis与众多保加利亚天王天后级歌手都有过合作.06年，他作为Mariana Popova的伴唱，在欧洲半决赛上演唱了他们的参赛曲Let Me Cry 06年他被Velikite Balgari评为保加利亚有史以来最伟大的名人之一
+            val dimension: Dimension = Dimension(),
+            val duration: Int = 0, // 2412
+            val `dynamic`: String = "",
+            val no_cache: Boolean = false, // false
+            val owner: Owner = Owner(),
+            val pages: List<Page> = listOf(),
+            val pic: String = "", // http://i2.hdslb.com/bfs/archive/1ada8c32a9d168e4b2ee3e010f24789ba3353785.jpg
+            val pubdate: Int = 0, // 1320850533
+            val rights: Rights = Rights(),
+            val stat: Stat = Stat(),
+            val state: Int = 0, // 0
+            val subtitle: Subtitle = Subtitle(),
+            val tid: Int = 0, // 193
+            val title: String = "", // 【MV】保加利亚妖王AZIS视频合辑
+            val tname: String = "", // MV
+            val videos: Int = 0 // 10
+        )
+
+        data class Video(
+            val code: Int = 0, // 0
+            val `data`: Data = Data(),
+            val message: String = "", // 0
+            val ttl: Int = 0 // 1
+        )
+
+        val json = Klaxon().parse<Video>(data!!)
+        return "标题：${json!!.data.title}AV号：${json.data.aid}\nBV号：${json.data.bvid}\n播放数：${json.data.stat.view}\n"+
+                "硬币数：${json.data.stat.coin}\n收藏数：${json.data.stat.favorite}"
+
     }
 
     data class Live(
