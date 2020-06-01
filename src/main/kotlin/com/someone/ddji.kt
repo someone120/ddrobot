@@ -43,6 +43,9 @@ object ddji : PluginBase() {
             startsWith(".av ",removePrefix = true){
                 reply(bd.getAv(it.toInt()))
             }
+            Regex("\\.rm \\d+") matchingReply {
+                bd.remove(it.value.drop(4))
+            }
             startsWith(".band ", removePrefix = true) {
                 if (d.isNotEmpty()) {
                     d = mapOf()
@@ -53,7 +56,7 @@ object ddji : PluginBase() {
                     d.forEach { (t, u) -> message.append("\n${t}---${u}") }
                     reply(message.toString())
                 } else {
-                    bd.uid(d.keys.toList()[0], d.values.toList()[0])
+                    bd.set(d.keys.toList()[0], d.values.toList()[0])
                     reply("添加成功！")
                 }
                 bd.run(bot, group)
@@ -68,21 +71,21 @@ object ddji : PluginBase() {
             startsWith(".uid ", removePrefix = true) {
                 val uid = it
                 val name = bd.getName(uid.toLong())
-                bd.uid(uid.toLong(), name)
+                bd.set(uid.toLong(), name)
                 reply("添加成功！名字为$name")
             }
             ".run" reply {
                 bd.run(bot, group)
                 "在本群启动咯"
             }
-            Regex(".b .*") matchingReply { result ->
+            Regex("\\.b \\d+") matchingReply { result ->
                 val ms = result.value.drop(3)
                 when {
                     d.isEmpty() -> {
                         "没有搜索吧"
                     }
                     d.any { it.key == ms.toLong() } -> {
-                        bd.uid(ms.toLong(), d[ms.toLong()] ?: error(""))
+                        bd.set(ms.toLong(), d[ms.toLong()] ?: error(""))
                         "添加成功！名字为${d[ms.toLong()]}"
                     }
                     else -> {

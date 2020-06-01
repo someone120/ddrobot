@@ -22,9 +22,29 @@ class BilibiliData {
     private var _status = mutableMapOf<Long, Int>()
     private var _bot: Bot? = null
     private val _groups = mutableSetOf<Group>()
-    fun uid(id: Long, name: String) {
+    fun set(id: Long, name: String) {
         _ids[id] = name
         _status[id] = 0
+    }
+
+    fun remove(name: String): String {
+        val filler=_ids.filter { it.value.equals(name) }
+        return if (filler.size>0){
+            remove(filler.entries.toList()[0].key)
+        }else{
+            "没有这个人吧"
+        }
+    }
+
+    fun remove(id: Long): String {
+        return if (_ids.any { it.key == id }) {
+            val name = _ids[id]
+            _status.remove(id)
+            _ids.remove(id)
+            "删除成功！名字为$name"
+        } else {
+            "没有这个人吧"
+        }
     }
 
     fun export(): String {
@@ -381,23 +401,25 @@ class BilibiliData {
     }
 
     fun run(bot: Bot, group: Group) {
+        _groups.add(group)
         if (this._bot == null) {
             this._bot = bot
-        }
-        _groups.add(group)
-        GlobalScope.launch {
-            while (true) {
-                try {
-                    delay(10 * 1000)
-                    _ids.forEach {
-                        delay(1000)
-                        _groups.forEach { group ->
-                            val live = getLive(it.key)
-                            if (live.stat == 1) group.sendMessage(group.uploadImage(URL(live.cover)).plus(live.message))
+            GlobalScope.launch {
+                while (true) {
+                    try {
+                        _ids.forEach {
+                            delay(1000)
+                            _groups.forEach { group ->
+                                val live = getLive(it.key)
+                                if (live.stat == 1) group.sendMessage(
+                                    group.uploadImage(URL(live.cover)).plus(live.message)
+                                )
+                            }
                         }
+                        delay(30 * 1000)
+                    } catch (e: Exception) {
+                        bot.getFriend(525965357).sendMessage(e.toString())
                     }
-                } catch (e: Exception) {
-                    bot.getFriend(525965357).sendMessage(e.toString())
                 }
             }
         }
