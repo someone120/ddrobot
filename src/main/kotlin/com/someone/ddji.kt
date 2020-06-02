@@ -6,7 +6,7 @@ import net.mamoe.mirai.event.subscribeAlways
 import net.mamoe.mirai.event.subscribeGroupMessages
 import net.mamoe.mirai.utils.info
 
-var d = mapOf<Long, String>()
+var d = mapOf<Int, String>()
 val bd = BilibiliData()
 
 object ddji : PluginBase() {
@@ -43,7 +43,7 @@ object ddji : PluginBase() {
             startsWith(".av ",removePrefix = true){
                 reply(bd.getAv(it.toInt()))
             }
-            Regex("\\.rm \\d+") matchingReply {
+            Regex("\\.rm .+") matchingReply {
                 bd.remove(it.value.drop(4))
             }
             startsWith(".band ", removePrefix = true) {
@@ -71,7 +71,7 @@ object ddji : PluginBase() {
             startsWith(".uid ", removePrefix = true) {
                 val uid = it
                 val name = bd.getName(uid.toLong())
-                bd.set(uid.toLong(), name)
+                bd.set(uid.toInt(), name)
                 reply("添加成功！名字为$name")
             }
             ".run" reply {
@@ -84,9 +84,9 @@ object ddji : PluginBase() {
                     d.isEmpty() -> {
                         "没有搜索吧"
                     }
-                    d.any { it.key == ms.toLong() } -> {
-                        bd.set(ms.toLong(), d[ms.toLong()] ?: error(""))
-                        "添加成功！名字为${d[ms.toLong()]}"
+                    d.any { it.key == ms.toInt() } -> {
+                        bd.set(ms.toInt(), d[ms.toInt()] ?: error(""))
+                        "添加成功！名字为${d[ms.toInt()]}"
                     }
                     else -> {
 

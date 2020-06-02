@@ -16,30 +16,30 @@ import java.util.logging.Logger
 
 
 class BilibiliData {
-    private var _ids = mutableMapOf<Long, String>()
-
+    data class Stat(
+        var name:String,
+        var liveStat:Int
+    )
+    private var _ids = mutableMapOf<Int, Stat>()
     //var Dynamics = mutableMapOf<Long, Long>()
-    private var _status = mutableMapOf<Long, Int>()
     private var _bot: Bot? = null
     private val _groups = mutableSetOf<Group>()
-    fun set(id: Long, name: String) {
-        _ids[id] = name
-        _status[id] = 0
+    fun set(id: Int, name: String) {
+        _ids[id] = Stat(name,0)
     }
 
     fun remove(name: String): String {
-        val filler=_ids.filter { it.value.equals(name) }
-        return if (filler.size>0){
+        val filler=_ids.filter { it.value.name == name }
+        return if (filler.isNotEmpty()){
             remove(filler.entries.toList()[0].key)
         }else{
             "没有这个人吧"
         }
     }
 
-    fun remove(id: Long): String {
+    private fun remove(id: Int): String {
         return if (_ids.any { it.key == id }) {
-            val name = _ids[id]
-            _status.remove(id)
+            val name = _ids[id]?.name
             _ids.remove(id)
             "删除成功！名字为$name"
         } else {
@@ -48,58 +48,29 @@ class BilibiliData {
     }
 
     fun export(): String {
-        data class Id(
-            @SerializedName("id")
-            val id: Long = 0,
-            @SerializedName("name")
+
+        data class DataItem(
+            val id: Int = 0,
+            val stat: Int = 0,
             val name: String = ""
         )
-
-        data class Status(
-            @SerializedName("id")
-            val id: Long = 0,
-            @SerializedName("_Status")
-            val status: Int = 0
-        )
-
-        data class Data(
-            @SerializedName("_Ids")
-            var ids: List<Id> = mutableListOf(),
-            @SerializedName("_Status")
-            var status: List<Status> = mutableListOf()
-        )
-
-        val d = Data()
-        this._ids.forEach { (t, u) -> d.ids += Id(id = t, name = u) }
-        this._status.forEach { (t, u) -> d.status += Status(id = t, status = u) }
-        return Klaxon().toJsonString(d)
+        class Data : ArrayList<DataItem>()
+        val ids= Data()
+            _ids.entries.forEach { ids.add(DataItem(it.key,it.value.liveStat,it.value.name)) }
+        return Klaxon().toJsonString(ids)
     }
 
+
+
     fun import(string: String) {
-        data class Id(
-            @SerializedName("id")
-            val id: Long = 0,
-            @SerializedName("name")
+        data class DataItem(
+            val id: Int = 0,
+            val stat: Int = 0,
             val name: String = ""
         )
-
-        data class Status(
-            @SerializedName("id")
-            val id: Long = 0,
-            @SerializedName("_Status")
-            val status: Int = 0
-        )
-
-        data class Data(
-            @SerializedName("_Ids")
-            val ids: List<Id> = listOf(),
-            @SerializedName("_Status")
-            val status: List<Status> = listOf()
-        )
-
-        val d = Klaxon().parse<Data>(string)
-        d!!.ids.forEach { this._ids[it.id] = it.name }
-        d.status.forEach { this._status[it.id] = it.status }
+        class Data : ArrayList<DataItem>()
+        val ids=Klaxon().parse<Data>(string)
+        ids?.forEach { _ids[it.id]= Stat(it.name,it.stat) }
     }
 
     fun get(string: String): String? {
@@ -237,7 +208,7 @@ class BilibiliData {
         return json!!.data.name
     }
 
-    fun band(string: String): Map<Long, String> {
+    fun band(string: String): MutableMap<Int, String> {
 
         data class CostTime(
             @SerializedName("as_request")
@@ -380,7 +351,7 @@ class BilibiliData {
         )
 
 
-        val result = mutableMapOf<Long, String>()
+        val result = mutableMapOf<Int, String>()
         val data = get(
             "https://api.bilibili.com/x/web-interface/search/type?context=&search_type=bili_user&page=1&order=&category_id=&user_type=&order_sort=&changing=mid&__refresh__=true&_extra=&highlight=1&single_column=0&keyword=" + URLEncoder.encode(
                 string,
@@ -394,7 +365,7 @@ class BilibiliData {
                 .parse<Search>(data)
             val r = json!!.data.result
             r.forEach {
-                result[it.mid.toLong()] = it.uname
+                result[it.mid] = it.uname
             }
             result
         }
@@ -425,7 +396,7 @@ class BilibiliData {
         }
     }
 
-    private fun getLive(uid: Long): Live {
+    private fun getLive(uid: Int): Live {
         val result = StringBuilder()
 
         data class Data(
@@ -451,8 +422,8 @@ class BilibiliData {
         var d = 0
         val data = get("https://api.live.bilibili.com/room/v1/Room/getRoomInfoOld?mid=${uid}")
         val json: Live? = Klaxon().parse<Live>(data!!)
-        if (json!!.data.liveStatus != _status[uid]) {
-            _status[uid] = json.data.liveStatus
+        if (json!!.data.liveStatus != _ids[uid]?.liveStat) {
+            _ids[uid]?.liveStat = json.data.liveStatus
             if (json.data.liveStatus == 1) {
                 result.append("${_ids[uid]}直播啦！直播标题是${json.data.title},快到${json.data.url} 看8")
                 d = 1
