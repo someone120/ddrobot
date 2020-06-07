@@ -7,8 +7,9 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.mamoe.mirai.Bot
-import net.mamoe.mirai.contact.Group
+import net.mamoe.mirai.console.MiraiConsole
 import net.mamoe.mirai.message.uploadImage
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -17,22 +18,24 @@ import java.util.logging.Logger
 
 class BilibiliData {
     data class Stat(
-        var name:String,
-        var liveStat:Int
+        var name: String,
+        var liveStat: Int
     )
+
     private var _ids = mutableMapOf<Int, Stat>()
-    //var Dynamics = mutableMapOf<Long, Long>()
     private var _bot: Bot? = null
-    private val _groups = mutableSetOf<Group>()
+
+    //var Dynamics = mutableMapOf<Long, Long>()
+    private var _groups = mutableSetOf<Long>()
     fun set(id: Int, name: String) {
-        _ids[id] = Stat(name,0)
+        _ids[id] = Stat(name, 0)
     }
 
     fun remove(name: String): String {
-        val filler=_ids.filter { it.value.name == name }
-        return if (filler.isNotEmpty()){
+        val filler = _ids.filter { it.value.name == name }
+        return if (filler.isNotEmpty()) {
             remove(filler.entries.toList()[0].key)
-        }else{
+        } else {
             "没有这个人吧"
         }
     }
@@ -54,13 +57,13 @@ class BilibiliData {
             val stat: Int = 0,
             val name: String = ""
         )
-        class Data : ArrayList<DataItem>()
-        val ids= Data()
-            _ids.entries.forEach { ids.add(DataItem(it.key,it.value.liveStat,it.value.name)) }
+
+        data class Data(var groups: MutableList<Long>, var data: MutableList<DataItem>)
+
+        val ids = Data(_groups.toMutableList(), mutableListOf())
+        _ids.entries.forEach { ids.data.add(DataItem(it.key, it.value.liveStat, it.value.name)) }
         return Klaxon().toJsonString(ids)
     }
-
-
 
     fun import(string: String) {
         data class DataItem(
@@ -68,9 +71,12 @@ class BilibiliData {
             val stat: Int = 0,
             val name: String = ""
         )
-        class Data : ArrayList<DataItem>()
-        val ids=Klaxon().parse<Data>(string)
-        ids?.forEach { _ids[it.id]= Stat(it.name,it.stat) }
+
+        data class Data(var groups: MutableList<Long>, var data: MutableList<DataItem>)
+
+        val ids = Klaxon().parse<Data>(string)
+        _groups = ids?.groups?.toMutableSet()!!
+        ids.data.forEach { _ids[it.id] = Stat(it.name, it.stat) }
     }
 
     fun get(string: String): String? {
@@ -371,26 +377,39 @@ class BilibiliData {
         }
     }
 
-    fun run(bot: Bot, group: Group) {
-        _groups.add(group)
-        if (this._bot == null) {
-            this._bot = bot
-            GlobalScope.launch {
-                while (true) {
-                    try {
-                        _ids.forEach {
-                            delay(1000)
-                            _groups.forEach { group ->
-                                val live = getLive(it.key)
-                                if (live.stat == 1) group.sendMessage(
+    fun run(bot: Bot, groupId: Long) {
+        if (_bot == null) _bot = bot
+        if (_groups.size <= 0) {
+            runBot()
+        }
+        _groups.add(groupId)
+    }
+
+    fun runBot() {
+        GlobalScope.launch {
+            val file: File by lazy {
+                File("${MiraiConsole.path}/plugins/ddji/output.json")
+            }
+            if (file.exists()) import(file.readText())
+            while (true) {
+                try {
+                    _ids.forEach {
+                        delay(1000)
+                        val live = getLive(it.key)
+                        _groups.forEach { groupId ->
+                            if (live.stat == 1) {
+                                val group = _bot?.getGroup(groupId)
+                                group?.sendMessage(
                                     group.uploadImage(URL(live.cover)).plus(live.message)
                                 )
+                                file.writeText(export())
                             }
                         }
-                        delay(30 * 1000)
-                    } catch (e: Exception) {
-                        bot.getFriend(525965357).sendMessage(e.toString())
                     }
+                    delay(30 * 1000)
+                } catch (e: Exception) {
+                    //bot.getFriend(525965357).sendMessage(e.toString())
+                    e.printStackTrace()
                 }
             }
         }
@@ -425,7 +444,7 @@ class BilibiliData {
         if (json!!.data.liveStatus != _ids[uid]?.liveStat) {
             _ids[uid]?.liveStat = json.data.liveStatus
             if (json.data.liveStatus == 1) {
-                result.append("${_ids[uid]}直播啦！直播标题是${json.data.title},快到${json.data.url} 看8")
+                result.append("${_ids[uid]?.name}直播啦！直播标题是${json.data.title},快到${json.data.url} 看8")
                 d = 1
             }
         }
@@ -651,4 +670,5 @@ class BilibiliData {
         val cover: String,
         val message: String
     )
+
 }

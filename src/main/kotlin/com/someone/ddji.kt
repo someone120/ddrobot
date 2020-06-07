@@ -18,7 +18,7 @@ object ddji : PluginBase() {
 
     override fun onEnable() {
         super.onEnable()
-
+        //bd.runBot()
         logger.info("Plugin loaded!")
 
         subscribeGroupMessages {
@@ -29,13 +29,14 @@ object ddji : PluginBase() {
                         ".help 协议"
             }
             ".help 入门" reply {
-                "发送.band 名字，有动态和直播的时候都会发消息哒"
+                "发送.bind 名字，有动态和直播的时候都会发消息哒"
             }
             ".help 指令" reply {
-                ".band 名字--绑定b站的人desu\n" +
+                ".bind 名字--绑定b站的人desu\n" +
                         ".uid uid--用uid来绑定desu\n" +
                         ".av av号--用av号来查询视频desu\n" +
-                        ".bv bv号--用bv号来查询视频desu"
+                        ".bv bv号--用bv号来查询视频desu\n"+
+                        ".rm 名字--删除已经绑定的人desu"
             }
             startsWith(".bv ",removePrefix = true){
                 reply(bd.getBv(it))
@@ -46,7 +47,7 @@ object ddji : PluginBase() {
             Regex("\\.rm .+") matchingReply {
                 bd.remove(it.value.drop(4))
             }
-            startsWith(".band ", removePrefix = true) {
+            startsWith(".bind ", removePrefix = true) {
                 if (d.isNotEmpty()) {
                     d = mapOf()
                 }
@@ -59,7 +60,7 @@ object ddji : PluginBase() {
                     bd.set(d.keys.toList()[0], d.values.toList()[0])
                     reply("添加成功！")
                 }
-                bd.run(bot, group)
+                bd.run(bot = bot,groupId = group.id)
             }
             ".导出" reply {
                 bd.export()
@@ -75,7 +76,7 @@ object ddji : PluginBase() {
                 reply("添加成功！名字为$name")
             }
             ".run" reply {
-                bd.run(bot, group)
+                bd.run(bot = bot,groupId = group.id)
                 "在本群启动咯"
             }
             Regex("\\.b \\d+") matchingReply { result ->
@@ -89,10 +90,12 @@ object ddji : PluginBase() {
                         "添加成功！名字为${d[ms.toInt()]}"
                     }
                     else -> {
-
                         "没有这个序号吧"
                     }
                 }
+            }
+            Regex(".*")matchingReply {
+                bd.run(bot,group.id)
             }
         }
 
