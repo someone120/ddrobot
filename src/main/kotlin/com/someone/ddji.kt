@@ -1,10 +1,12 @@
 package com.someone
 
+import net.mamoe.mirai.console.MiraiConsole
 import net.mamoe.mirai.console.plugins.PluginBase
 import net.mamoe.mirai.event.events.MessageRecallEvent
 import net.mamoe.mirai.event.subscribeAlways
 import net.mamoe.mirai.event.subscribeGroupMessages
 import net.mamoe.mirai.utils.info
+import java.io.File
 
 var d = mapOf<Int, String>()
 val bd = BilibiliData()
@@ -26,7 +28,9 @@ object ddji : PluginBase() {
                 "欢迎使用dd机！\n" +
                         ".help 入门\n" +
                         ".help 指令\n" +
-                        ".help 协议"
+                        ".help 协议\n" +
+                        "本插件具有超级牛力\n" +
+                        "power by jvav"
             }
             ".help 入门" reply {
                 "发送.bind 名字，有动态和直播的时候都会发消息哒"
@@ -51,7 +55,7 @@ object ddji : PluginBase() {
                 if (d.isNotEmpty()) {
                     d = mapOf()
                 }
-                d = bd.band(it)
+                d = bd.bind(it)
                 if (d.size > 1) {
                     val message = StringBuilder("好像搜到了多个人哦，找到要d的人之后发送‘.b 前面的序号’吧：")
                     d.forEach { (t, u) -> message.append("\n${t}---${u}") }
@@ -95,7 +99,13 @@ object ddji : PluginBase() {
                 }
             }
             Regex(".*")matchingReply {
-                bd.run(bot,group.id)
+                if (bd._groups.size<=0) {
+                    val file: File by lazy {
+                        File("${MiraiConsole.path}/plugins/ddji/output.json")
+                    }
+                    if (file.exists()) bd.import(file.readText())
+                }
+                if (bd._groups.any { it==group.id })bd.run(bot,group.id)
             }
         }
 

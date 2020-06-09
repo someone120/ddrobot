@@ -3,9 +3,7 @@ package com.someone
 import com.beust.klaxon.Klaxon
 import com.google.gson.annotations.SerializedName
 import com.someone.BilibiliData.Live
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.console.MiraiConsole
 import net.mamoe.mirai.message.uploadImage
@@ -22,11 +20,12 @@ class BilibiliData {
         var liveStat: Int
     )
 
+    var _GS: Job = run()
     private var _ids = mutableMapOf<Int, Stat>()
     private var _bot: Bot? = null
 
     //var Dynamics = mutableMapOf<Long, Long>()
-    private var _groups = mutableSetOf<Long>()
+    var _groups = mutableSetOf<Long>()
     fun set(id: Int, name: String) {
         _ids[id] = Stat(name, 0)
     }
@@ -72,8 +71,8 @@ class BilibiliData {
             val name: String = ""
         )
 
-        data class Data(var groups: MutableList<Long>, var data: MutableList<DataItem>)
-
+        data class Data(var groups: MutableList<Long>,
+                        var data: MutableList<DataItem>)
         val ids = Klaxon().parse<Data>(string)
         _groups = ids?.groups?.toMutableSet()!!
         ids.data.forEach { _ids[it.id] = Stat(it.name, it.stat) }
@@ -214,7 +213,7 @@ class BilibiliData {
         return json!!.data.name
     }
 
-    fun band(string: String): MutableMap<Int, String> {
+    fun bind(string: String): MutableMap<Int, String> {
 
         data class CostTime(
             @SerializedName("as_request")
@@ -379,14 +378,15 @@ class BilibiliData {
 
     fun run(bot: Bot, groupId: Long) {
         if (_bot == null) _bot = bot
-        if (_groups.size <= 0) {
-            runBot()
+        //if (_groups.size <= 0) {
+        if (!_GS.isActive) {
+        _GS.start()
         }
         _groups.add(groupId)
     }
 
-    fun runBot() {
-        GlobalScope.launch {
+    private fun run(): Job {
+        return GlobalScope.launch (start = CoroutineStart.LAZY){
             val file: File by lazy {
                 File("${MiraiConsole.path}/plugins/ddji/output.json")
             }
