@@ -487,7 +487,7 @@ class BilibiliData {
         if (json!!.data.liveStatus != _ids[uid]?.liveStat) {
             _ids[uid]?.liveStat = json.data.liveStatus
             if (json.data.liveStatus == 1) {
-                result.append("${_ids[uid]?.name}直播啦！直播标题是${json.data.title},快到${json.data.url} 看8")
+                result.append("${_ids[uid]?.name}直播啦！直播标题是${json.data.title},传送门->${json.data.url} ")
                 d = 1
             }
         }
@@ -552,7 +552,13 @@ class BilibiliData {
 
         val json =
             get("https://api.bilibili.com/x/space/arc/search?mid=${uid}&ps=1&tid=0&pn=1&keyword=&order=pubdate")?.let {
-                Klaxon().parse<Video>(it)
+                var resultJson:Video?=Video()
+                try {
+                    resultJson=Klaxon().parse<Video>(it)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                resultJson
             }
         json?.let { video ->
             video.data.list.let {
@@ -563,7 +569,7 @@ class BilibiliData {
                     result.message =
                         "${it.vlist[0].author}发布了新视频！\n" +
                                 "视频名字为：${it.vlist[0].title}\n" +
-                                "快到https://www.bilibili.com/video/${it.vlist[0].bvid}看吧"
+                                "传送门-> https://www.bilibili.com/video/${it.vlist[0].bvid}"
                 }
             }
         }
