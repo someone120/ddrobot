@@ -552,24 +552,27 @@ class BilibiliData {
 
         val json =
             get("https://api.bilibili.com/x/space/arc/search?mid=${uid}&ps=1&tid=0&pn=1&keyword=&order=pubdate")?.let {
-                var resultJson:Video?=Video()
+                var resultJson: Video? = Video()
                 try {
-                    resultJson=Klaxon().parse<Video>(it)
+                    resultJson = Klaxon().parse<Video>(it)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
                 resultJson
             }
         json?.let { video ->
-            video.data.list.let {
-                if (_ids[uid]?.lastAid != it.vlist[0].aid) {
-                    _ids[uid]?.lastAid = it.vlist[0].aid
-                    result.stat = 1
-                    //result.cover = json.data.list.vlist[0].pic
-                    result.message =
-                        "${it.vlist[0].author}发布了新视频！\n" +
-                                "视频名字为：${it.vlist[0].title}\n" +
-                                "传送门-> https://www.bilibili.com/video/${it.vlist[0].bvid}"
+            if (video.data.page.count >= 0) {
+                video.data.list.let {
+
+                    if (_ids[uid]?.lastAid != it.vlist[0].aid) {
+                        _ids[uid]?.lastAid = it.vlist[0].aid
+                        result.stat = 1
+                        //result.cover = json.data.list.vlist[0].pic
+                        result.message =
+                            "${it.vlist[0].author}发布了新视频！\n" +
+                                    "视频名字为：${it.vlist[0].title}\n" +
+                                    "传送门-> https://www.bilibili.com/video/${it.vlist[0].bvid}"
+                    }
                 }
             }
         }
