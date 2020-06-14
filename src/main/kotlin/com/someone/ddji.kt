@@ -16,6 +16,16 @@ object ddji : PluginBase() {
     override fun onDisable() {
         super.onDisable()
         logger.info(bd.export())
+        try {
+            bd._videoJob.let { if (!it.isCancelled) it.cancel() }
+            bd._liveJob.let { if (!it.isCancelled) it.cancel() }
+        }catch (e:Exception){
+
+        }
+        val file: File by lazy {
+            File("${MiraiConsole.path}/plugins/ddji/output.json")
+        }
+        if (file.exists()) file.writeText(bd.export())
     }
 
     override fun onEnable() {

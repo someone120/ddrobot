@@ -1,6 +1,8 @@
 package com.someone
 
+import com.beust.klaxon.Json
 import com.beust.klaxon.Klaxon
+import com.beust.klaxon.Parser
 import com.google.gson.annotations.SerializedName
 import com.someone.BilibiliData.Live
 import kotlinx.coroutines.*
@@ -8,6 +10,7 @@ import net.mamoe.mirai.Bot
 import net.mamoe.mirai.console.MiraiConsole
 import net.mamoe.mirai.message.uploadImage
 import java.io.File
+import java.io.Reader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -17,17 +20,19 @@ import java.util.logging.Logger
 class BilibiliData {
     data class Stat(
         var name: String,
-        var liveStat: Int
+        var liveStat: Int,
+        var lastAid: Int
     )
 
-    var _GS: Job = run()
+    val _liveJob: Job = runLive()
+    val _videoJob: Job = runVideo()
     private var _ids = mutableMapOf<Int, Stat>()
     private var _bot: Bot? = null
 
     //var Dynamics = mutableMapOf<Long, Long>()
     var _groups = mutableSetOf<Long>()
     fun set(id: Int, name: String) {
-        _ids[id] = Stat(name, 0)
+        _ids[id] = Stat(name, 0, 0)
     }
 
     fun remove(name: String): String {
@@ -54,13 +59,14 @@ class BilibiliData {
         data class DataItem(
             val id: Int = 0,
             val stat: Int = 0,
-            val name: String = ""
+            val name: String = "",
+            val lastAid: Int = 0
         )
 
         data class Data(var groups: MutableList<Long>, var data: MutableList<DataItem>)
 
         val ids = Data(_groups.toMutableList(), mutableListOf())
-        _ids.entries.forEach { ids.data.add(DataItem(it.key, it.value.liveStat, it.value.name)) }
+        _ids.entries.forEach { ids.data.add(DataItem(it.key, it.value.liveStat, it.value.name, it.value.lastAid)) }
         return Klaxon().toJsonString(ids)
     }
 
@@ -68,14 +74,18 @@ class BilibiliData {
         data class DataItem(
             val id: Int = 0,
             val stat: Int = 0,
-            val name: String = ""
+            val name: String = "",
+            val lastAid: Int = 0
         )
 
-        data class Data(var groups: MutableList<Long>,
-                        var data: MutableList<DataItem>)
+        data class Data(
+            var groups: MutableList<Long>,
+            var data: MutableList<DataItem>
+        )
+
         val ids = Klaxon().parse<Data>(string)
         _groups = ids?.groups?.toMutableSet()!!
-        ids.data.forEach { _ids[it.id] = Stat(it.name, it.stat) }
+        ids.data.forEach { _ids[it.id] = Stat(it.name, it.stat, lastAid = it.lastAid) }
     }
 
     fun get(string: String): String? {
@@ -379,14 +389,17 @@ class BilibiliData {
     fun run(bot: Bot, groupId: Long) {
         if (_bot == null) _bot = bot
         //if (_groups.size <= 0) {
-        if (!_GS.isActive) {
-        _GS.start()
+        if (!_liveJob.isActive) {
+            _liveJob.start()
+        }
+        if (!_videoJob.isActive) {
+            _videoJob.start()
         }
         _groups.add(groupId)
     }
 
-    private fun run(): Job {
-        return GlobalScope.launch (start = CoroutineStart.LAZY){
+    private fun runLive(): Job {
+        return GlobalScope.launch(start = CoroutineStart.LAZY) {
             val file: File by lazy {
                 File("${MiraiConsole.path}/plugins/ddji/output.json")
             }
@@ -407,6 +420,36 @@ class BilibiliData {
                         }
                     }
                     delay(30 * 1000)
+                } catch (e: Exception) {
+                    //bot.getFriend(525965357).sendMessage(e.toString())
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    private fun runVideo(): Job {
+        return GlobalScope.launch(start = CoroutineStart.LAZY) {
+            val file: File by lazy {
+                File("${MiraiConsole.path}/plugins/ddji/output.json")
+            }
+            if (file.exists()) import(file.readText())
+            while (true) {
+                try {
+                    _ids.forEach {
+                        delay(1000)
+                        val live = getVideo(it.key)
+                        _groups.forEach { groupId ->
+                            if (live.stat == 1) {
+                                val group = _bot?.getGroup(groupId)
+                                group?.sendMessage(
+                                    live.message
+                                )
+                                file.writeText(export())
+                            }
+                        }
+                    }
+                    delay(120 * 1000)
                 } catch (e: Exception) {
                     //bot.getFriend(525965357).sendMessage(e.toString())
                     e.printStackTrace()
@@ -450,6 +493,81 @@ class BilibiliData {
         }
         Logger.getLogger("ddji").info("获取成功！$data")
         return Live(cover = json.data.cover, message = result.toString(), stat = d)
+    }
+
+    private fun getVideo(uid: Int): Video {
+        val result = Video(0, "")
+
+
+        data class Vlist(
+            val aid: Int = 0, // 838540890
+            val author: String = "", // 近卫局长_blast鱿鱼
+            val bvid: String = "", // BV18g4y1q7To
+            val comment: Int = 0, // 839
+            val copyright: String = "",
+            val created: Int = 0, // 1591987907
+            val description: String = "", // 本视频是 《高台讲坛》系列的第5期 ，喜欢的可以到我的收藏夹查看喜欢请 关注 点赞三连，即可有后续评测推送，想看什么评测也可私信共有： 莫斯提马 刻俄柏 守林人安比尔 白金评测 黑+普罗旺斯评测本人还有《近卫方舟》系列节目，共10期共有：年+塞雷亚 麦哲伦 星极 赫拉格+夜魔 陈 推进之王 狮蝎 幽灵鲨 煌 评测reference：本视频技能面板来自 prts，网址ak.mooncell.wiki
+            val hide_click: Boolean = false, // false
+            val is_pay: Int = 0, // 0
+            val is_union_video: Int = 0, // 0
+            val length: String = "", // 13:40
+            val mid: Int = 0, // 4475469
+            val pic: String = "", // //i1.hdslb.com/bfs/archive/691713e64431f8d6f13c229238f04ac3293db5b2.jpg
+            val play: Int = 0, // 88098
+            val review: Int = 0, // 0
+            val subtitle: String = "",
+            val title: String = "", // 【干员评测 莫斯提马】我 要 打 十 个！！！以柔克刚的干员！【高台讲坛 第四期】【明日方舟】专精3,序时之匙 荒时之锁
+            val typeid: Int = 0, // 172
+            val video_review: Int = 0 // 1242
+        )
+
+        data class Page(
+            val count: Int = 0, // 59
+            val pn: Int = 0, // 1
+            val ps: Int = 0 // 30
+        )
+
+        data class MapValue(
+            val count: Int = 0, // 1
+            val name: String = "", // 动画
+            val tid: Int = 0 // 1
+        )
+
+        data class ListX(
+            val tlist: Map<Int, MapValue>? = mapOf(),
+            val vlist: List<Vlist> = listOf(Vlist(0))
+        )
+
+        data class Data(
+            val list: ListX = ListX(),
+            val page: Page = Page()
+        )
+
+        data class Video(
+            val code: Int = 0, // 0
+            val `data`: Data = Data(),
+            val message: String = "", // 0
+            val ttl: Int = 0 // 1
+        )
+
+        val json =
+            get("https://api.bilibili.com/x/space/arc/search?mid=${uid}&ps=1&tid=0&pn=1&keyword=&order=pubdate")?.let {
+                Klaxon().parse<Video>(it)
+            }
+        json?.let { video ->
+            video.data.list.let {
+                if (_ids[uid]?.lastAid != it.vlist[0].aid) {
+                    _ids[uid]?.lastAid = it.vlist[0].aid
+                    result.stat = 1
+                    //result.cover = json.data.list.vlist[0].pic
+                    result.message =
+                        "${it.vlist[0].author}发布了新视频！\n" +
+                                "视频名字为：${it.vlist[0].title}\n" +
+                                "快到https://www.bilibili.com/video/${it.vlist[0].bvid}看吧"
+                }
+            }
+        }
+        return result
     }
 
     fun getAv(Aid: Int): String {
@@ -669,6 +787,12 @@ class BilibiliData {
         val stat: Int,
         val cover: String,
         val message: String
+    )
+
+    data class Video(
+        var stat: Int,
+        // var cover: String,
+        var message: String
     )
 
 }
