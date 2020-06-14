@@ -561,9 +561,8 @@ class BilibiliData {
                 resultJson
             }
         json?.let { video ->
-            if (video.data.page.count >= 0) {
+            if (video.data.page.count > 0) {
                 video.data.list.let {
-
                     if (_ids[uid]?.lastAid != it.vlist[0].aid) {
                         _ids[uid]?.lastAid = it.vlist[0].aid
                         result.stat = 1
