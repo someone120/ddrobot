@@ -2,9 +2,9 @@ package com.someone
 
 import net.mamoe.mirai.console.MiraiConsole
 import net.mamoe.mirai.console.plugins.PluginBase
+import net.mamoe.mirai.event.*
+import net.mamoe.mirai.event.events.BotOnlineEvent
 import net.mamoe.mirai.event.events.MessageRecallEvent
-import net.mamoe.mirai.event.subscribeAlways
-import net.mamoe.mirai.event.subscribeGroupMessages
 import net.mamoe.mirai.utils.info
 import java.io.File
 
@@ -20,6 +20,7 @@ object ddji : PluginBase() {
             File("${MiraiConsole.path}/plugins/ddji/output.json")
         }
         if (file.exists()) file.writeText(bd.export())
+        bd.stopJob()
     }
 
     override fun onEnable() {
@@ -30,6 +31,7 @@ object ddji : PluginBase() {
         subscribeGroupMessages {
             ".help" reply {
                 "欢迎使用dd机！\n" +
+                        "本插件在检测到有发新视频和直播的时候都会发消息提示\n" +
                         ".help 入门\n" +
                         ".help 指令\n" +
                         ".help 协议\n" +
@@ -37,19 +39,19 @@ object ddji : PluginBase() {
                         "power by jvav"
             }
             ".help 入门" reply {
-                "发送.bind 名字，有动态和直播的时候都会发消息哒"
+                "发送.bind 名字，有发新视频和直播的时候都会发消息哒"
             }
             ".help 指令" reply {
-                ".bind 名字--绑定b站的人desu\n" +
+                ".bind 名字--绑定b站的up主desu\n" +
                         ".uid uid--用uid来绑定desu\n" +
                         ".av av号--用av号来查询视频desu\n" +
-                        ".bv bv号--用bv号来查询视频desu\n"+
-                        ".rm 名字--删除已经绑定的人desu"
+                        ".bv bv号--用bv号来查询视频desu\n" +
+                        ".rm 名字--删除已经绑定的up主desu"
             }
-            startsWith(".bv ",removePrefix = true){
+            startsWith(".bv ", removePrefix = true) {
                 reply(bd.getBv(it))
             }
-            startsWith(".av ",removePrefix = true){
+            startsWith(".av ", removePrefix = true) {
                 reply(bd.getAv(it.toInt()))
             }
             Regex("\\.rm .+") matchingReply {
@@ -68,7 +70,7 @@ object ddji : PluginBase() {
                     bd.set(d.keys.toList()[0], d.values.toList()[0])
                     reply("添加成功！")
                 }
-                bd.run(bot = bot,groupId = group.id)
+                bd.startGroup(bot = bot, groupId = group.id)
             }
             ".导出" reply {
                 bd.export()
@@ -84,8 +86,29 @@ object ddji : PluginBase() {
                 reply("添加成功！名字为$name")
             }
             ".run" reply {
-                bd.run(bot = bot,groupId = group.id)
+                bd.startGroup(bot = bot, groupId = group.id)
                 "在本群启动咯"
+            }
+            ".stop" reply {
+                bd.stopGroup(group.id)
+                "关闭了哦"
+            }
+            startsWith(".check ", removePrefix = true) {
+                val instruction = it.split(" ")
+                when (instruction[0]) {
+                    "group" -> {
+                        reply("本群启动状态：${bd.getGroup().any { it == group.id }}")
+                    }
+                    "bot" -> {
+                        reply("Pong!")
+                    }
+                    "memory"->{
+                        reply("剩余内存 = ${(Runtime.getRuntime().freeMemory()).toDouble()/1024/1024}M/${Runtime.getRuntime().maxMemory().toDouble()/1024/1024}M")
+                    }
+                    "gc"->{
+                        Runtime.getRuntime().gc()
+                    }
+                }
             }
             Regex("\\.b \\d+") matchingReply { result ->
                 val ms = result.value.drop(3)
@@ -102,19 +125,9 @@ object ddji : PluginBase() {
                     }
                 }
             }
-            Regex(".*")matchingReply {
-                if (bd._groups.size<=0) {
-                    val file: File by lazy {
-                        File("${MiraiConsole.path}/plugins/ddji/output.json")
-                    }
-                    if (file.exists()) bd.import(file.readText())
-                }
-                if (bd._groups.any { it==group.id })bd.run(bot,group.id)
-            }
         }
-
-        subscribeAlways<MessageRecallEvent> { event ->
-            logger.info { "${event.authorId} 的消息被撤回了" }
+        subscribeOnce<BotOnlineEvent> {
+            bd.run(bot = bot)
         }
     }
 }

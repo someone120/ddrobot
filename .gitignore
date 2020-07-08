@@ -23,7 +23,7 @@ hs_err_pid*
 
 target/
 build/
-
+.idea
 .idea/
 *.iml
 mirai.iml

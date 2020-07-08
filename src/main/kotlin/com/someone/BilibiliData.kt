@@ -1,8 +1,6 @@
 package com.someone
 
-import com.beust.klaxon.Json
 import com.beust.klaxon.Klaxon
-import com.beust.klaxon.Parser
 import com.google.gson.annotations.SerializedName
 import com.someone.BilibiliData.Live
 import kotlinx.coroutines.*
@@ -10,7 +8,6 @@ import net.mamoe.mirai.Bot
 import net.mamoe.mirai.console.MiraiConsole
 import net.mamoe.mirai.message.uploadImage
 import java.io.File
-import java.io.Reader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -24,13 +21,13 @@ class BilibiliData {
         var lastAid: Int
     )
 
-    val _liveJob: Job = runLive()
-    val _videoJob: Job = runVideo()
+    private val _liveJob: Job = runLive()
+    private val _videoJob: Job = runVideo()
     private var _ids = mutableMapOf<Int, Stat>()
     private var _bot: Bot? = null
 
     //var Dynamics = mutableMapOf<Long, Long>()
-    var _groups = mutableSetOf<Long>()
+    private var _groups = mutableSetOf<Long>()
     fun set(id: Int, name: String) {
         _ids[id] = Stat(name, 0, 0)
     }
@@ -386,7 +383,12 @@ class BilibiliData {
         }
     }
 
-    fun run(bot: Bot, groupId: Long) {
+    fun startGroup(bot: Bot, groupId: Long) {
+        run(bot)
+        _groups.add(groupId)
+    }
+
+    fun run(bot: Bot) {
         if (_bot == null) _bot = bot
         //if (_groups.size <= 0) {
         if (!_liveJob.isActive) {
@@ -395,7 +397,6 @@ class BilibiliData {
         if (!_videoJob.isActive) {
             _videoJob.start()
         }
-        _groups.add(groupId)
     }
 
     private fun runLive(): Job {
@@ -437,7 +438,7 @@ class BilibiliData {
             while (true) {
                 try {
                     _ids.forEach {
-                        delay(1000)
+                        delay(10_000)
                         val live = getVideo(it.key)
                         _groups.forEach { groupId ->
                             if (live.stat == 1) {
@@ -449,7 +450,7 @@ class BilibiliData {
                             }
                         }
                     }
-                    delay(120 * 1000)
+                    delay(1800000)
                 } catch (e: Exception) {
                     //bot.getFriend(525965357).sendMessage(e.toString())
                     e.printStackTrace()
@@ -497,7 +498,6 @@ class BilibiliData {
 
     private fun getVideo(uid: Int): Video {
         val result = Video(0, "")
-
 
         data class Vlist(
             val aid: Int = 0, // 838540890
@@ -789,6 +789,23 @@ class BilibiliData {
         return "标题：${json!!.data.title}AV号：${json.data.aid}\nBV号：${json.data.bvid}\n播放数：${json.data.stat.view}\n" +
                 "硬币数：${json.data.stat.coin}\n收藏数：${json.data.stat.favorite}"
 
+    }
+
+    fun stopGroup(group: Long): Boolean {
+        return _groups.remove(group)
+    }
+
+    fun getGroup(): MutableSet<Long>{
+        return _groups
+    }
+
+    fun stopJob(){
+        if (_liveJob.isActive) {
+            _liveJob.cancel()
+        }
+        if (_videoJob.isActive){
+            _videoJob.cancel()
+        }
     }
 
     data class Live(
